@@ -21,7 +21,7 @@
 	// Insert code here to initialize your application
 	[_window setVibrantDarkAppearance];
 	[_window setContentViewAppearanceVibrantDark];
-	[_window.titleBarView addSubview:_titlebar];
+	[_window.titleBarView addSubview:_titlebar];    
 }
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification {

@@ -207,6 +207,11 @@ static float kWAYWindowDefaultTrafficLightButtonsTopMargin = 0;
 	[self _setNeedsLayout];
 }
 
+- (void) setVerticalTrafficLightButtons:(BOOL)verticalTrafficLightButtons {
+    _verticalTrafficLightButtons = verticalTrafficLightButtons;
+    [self _setNeedsLayout];
+}
+
 - (void) setTitleBarHeight:(CGFloat)titleBarHeight {
 
 	titleBarHeight = MAX(titleBarHeight,[[self class] defaultTitleBarHeight]);
@@ -321,24 +326,44 @@ static float kWAYWindowDefaultTrafficLightButtonsTopMargin = 0;
 	self.styleMask |= NSFullSizeContentViewWindowMask;
 	_trafficLightButtonsLeftMargin = kWAYWindowDefaultTrafficLightButtonsLeftMargin;
 	_trafficLightButtonsTopMargin = kWAYWindowDefaultTrafficLightButtonsTopMargin;
-	
-	self.hidesTitle = YES;
+
+    self.hidesTitle = YES;
 	
 	[super setDelegate:self];
 	[self _setNeedsLayout];
 }
 
 - (void) _setNeedsLayout {
-	[_standardButtons enumerateObjectsUsingBlock:^(NSButton *standardButton, NSUInteger idx, BOOL *stop) {
-		NSRect frame = standardButton.frame;
-		if (_centerTrafficLightButtons)
-			frame.origin.y = NSHeight(standardButton.superview.frame)/2-NSHeight(standardButton.frame)/2;
-		else
-			frame.origin.y = NSHeight(standardButton.superview.frame)-NSHeight(standardButton.frame)-_trafficLightButtonsTopMargin;
-		
-		frame.origin.x = _trafficLightButtonsLeftMargin +idx*(NSWidth(frame) + 6);
-		[standardButton setFrame:frame];
-	}];
+    [_standardButtons enumerateObjectsUsingBlock:^(NSButton *standardButton, NSUInteger idx, BOOL *stop) {
+        NSRect frame = standardButton.frame;
+        CGFloat trafficLightSeparation = 6.0;
+        if (_verticalTrafficLightButtons)
+        {
+            if (_centerTrafficLightButtons)
+            {
+                CGFloat trafficLightsHeight = 3.0*NSHeight(frame) + 2.0*trafficLightSeparation;
+                CGFloat offset = (_titleBarHeight - trafficLightsHeight)/2.0;
+                frame.origin.y =  _titleBarHeight - NSHeight(frame) - idx*(NSHeight(frame) + trafficLightSeparation) - offset;
+            }
+            else
+            {
+                frame.origin.y = (_titleBarHeight - NSHeight(frame) - _trafficLightButtonsTopMargin) - idx*(NSHeight(frame) + trafficLightSeparation);
+            }
+            
+            frame.origin.x = _trafficLightButtonsLeftMargin;
+            [standardButton setFrame:frame];
+        }
+        else
+        {
+            if (_centerTrafficLightButtons)
+                frame.origin.y = NSHeight(standardButton.superview.frame)/2-NSHeight(standardButton.frame)/2;
+            else
+                frame.origin.y = NSHeight(standardButton.superview.frame)-NSHeight(standardButton.frame)-_trafficLightButtonsTopMargin;
+            
+            frame.origin.x = _trafficLightButtonsLeftMargin +idx*(NSWidth(frame) + trafficLightSeparation);
+            [standardButton setFrame:frame];
+        }
+    }];
 }
 
 #pragma mark - NSWindow Delegate

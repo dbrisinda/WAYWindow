@@ -41,6 +41,9 @@
 /// If set to YES, the standard window button will be vertically centered. Default: YES.
 @property (nonatomic) IBInspectable BOOL centerTrafficLightButtons;
 
+/// If set to YES, the traffic light buttons are displayed in vertical orientation. Default: NO.
+@property (nonatomic) IBInspectable BOOL verticalTrafficLightButtons;
+
 /// Defines the left margin of the standard window buttons. Defaut: OS X default value.
 @property (nonatomic) IBInspectable CGFloat trafficLightButtonsLeftMargin;
 
