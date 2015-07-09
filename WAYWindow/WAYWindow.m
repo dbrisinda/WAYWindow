@@ -19,6 +19,7 @@
 //
 
 #import "WAYWindow.h"
+#import <Carbon/Carbon.h>
 
 /** 
  Convenience methods to make NSPointerArray act like a stack of selectors. It would be a subclass, but NSPointerArray
@@ -199,12 +200,12 @@ static float kWAYWindowDefaultTrafficLightButtonsTopMargin = 0;
 #pragma mark - Public
 
 - (NSView *) titleBarView {
-	return [_standardButtons[0] superview];
+    return [_standardButtons[0] superview];
 }
 
 - (void) setCenterTrafficLightButtons:(BOOL)centerTrafficLightButtons {
-	_centerTrafficLightButtons = centerTrafficLightButtons;
-	[self _setNeedsLayout];
+    _centerTrafficLightButtons = centerTrafficLightButtons;
+    [self _setNeedsLayout];
 }
 
 - (void) setVerticalTrafficLightButtons:(BOOL)verticalTrafficLightButtons {
@@ -212,33 +213,45 @@ static float kWAYWindowDefaultTrafficLightButtonsTopMargin = 0;
     [self _setNeedsLayout];
 }
 
-- (void) setTitleBarHeight:(CGFloat)titleBarHeight {
+- (void) setVerticallyCenterTitle:(BOOL)verticallyCenterTitle {
+    _verticallyCenterTitle = verticallyCenterTitle;
+    [self _setNeedsLayout];
+}
 
-	titleBarHeight = MAX(titleBarHeight,[[self class] defaultTitleBarHeight]);
-	CGFloat delta = titleBarHeight - _titleBarHeight;
-	_titleBarHeight = titleBarHeight;
-	
-	if (_dummyTitlebarAccessoryViewController) {
-		[self removeTitlebarAccessoryViewControllerAtIndex:0];
-	}
-	
-	NSView *view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 10, titleBarHeight-[WAYWindow defaultTitleBarHeight])];
-	_dummyTitlebarAccessoryViewController = [NSTitlebarAccessoryViewController new];
-	_dummyTitlebarAccessoryViewController.view = view;
-	_dummyTitlebarAccessoryViewController.fullScreenMinHeight = titleBarHeight;
-	[self addTitlebarAccessoryViewController:_dummyTitlebarAccessoryViewController];
-	
-	NSRect frame = self.frame;
-	frame.size.height += delta;
-	frame.origin.y -= delta;
-	
-	[self _setNeedsLayout];
-	[self setFrame:frame display:NO]; // NO is important.
+- (void) setTitleBarHeight:(CGFloat)titleBarHeight {
+    
+    titleBarHeight = MAX(titleBarHeight,[[self class] defaultTitleBarHeight]);
+    CGFloat delta = titleBarHeight - _titleBarHeight;
+    _titleBarHeight = titleBarHeight;
+    
+    if (_dummyTitlebarAccessoryViewController) {
+        [self removeTitlebarAccessoryViewControllerAtIndex:0];
+    }
+    
+    NSView *view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 10, titleBarHeight-[WAYWindow defaultTitleBarHeight])];
+    _dummyTitlebarAccessoryViewController = [NSTitlebarAccessoryViewController new];
+    _dummyTitlebarAccessoryViewController.view = view;
+    _dummyTitlebarAccessoryViewController.fullScreenMinHeight = titleBarHeight;
+    [self addTitlebarAccessoryViewController:_dummyTitlebarAccessoryViewController];
+    
+    NSRect frame = self.frame;
+    frame.size.height += delta;
+    frame.origin.y -= delta;
+    
+    [self _setNeedsLayout];
+    [self setFrame:frame display:NO]; // NO is important.
 }
 
 - (void) setHidesTitle:(BOOL)hidesTitle {
-	_hidesTitle = hidesTitle;
-	[self setTitleVisibility:hidesTitle ? NSWindowTitleHidden : NSWindowTitleVisible];
+    _hidesTitle = hidesTitle;
+    _showsTitle = !hidesTitle;
+    [self setTitleVisibility:hidesTitle ? NSWindowTitleHidden : NSWindowTitleVisible];
+}
+
+- (void) setShowsTitle:(BOOL)showsTitle {
+    _showsTitle = showsTitle;
+    _hidesTitle = !showsTitle;
+    [self setTitleVisibility:showsTitle ? NSWindowTitleVisible : NSWindowTitleHidden];
 }
 
 - (void) setContentViewAppearanceVibrantDark {
@@ -310,33 +323,35 @@ static float kWAYWindowDefaultTrafficLightButtonsTopMargin = 0;
 #pragma mark - Private
 
 - (void) _setUp {
-	_delegateProxy = [[WAYWindowDelegateProxy alloc] init];
-	_delegateProxy.firstDelegate = self;
-	super.delegate = _delegateProxy;
-	
-	_standardButtons = @[[self standardWindowButton:NSWindowCloseButton],
-						 [self standardWindowButton:NSWindowMiniaturizeButton],
-						 [self standardWindowButton:NSWindowZoomButton]];
-	_centerTrafficLightButtons = YES;
-	
-	NSButton *closeButton = [self standardWindowButton:NSWindowCloseButton];
-	kWAYWindowDefaultTrafficLightButtonsLeftMargin = NSMinX(closeButton.frame);
-	kWAYWindowDefaultTrafficLightButtonsTopMargin = NSHeight(closeButton.superview.frame)-NSMaxY(closeButton.frame);
-	
-	self.styleMask |= NSFullSizeContentViewWindowMask;
-	_trafficLightButtonsLeftMargin = kWAYWindowDefaultTrafficLightButtonsLeftMargin;
-	_trafficLightButtonsTopMargin = kWAYWindowDefaultTrafficLightButtonsTopMargin;
-
+    _delegateProxy = [[WAYWindowDelegateProxy alloc] init];
+    _delegateProxy.firstDelegate = self;
+    super.delegate = _delegateProxy;
+    
+    _standardButtons = @[[self standardWindowButton:NSWindowCloseButton],
+                         [self standardWindowButton:NSWindowMiniaturizeButton],
+                         [self standardWindowButton:NSWindowZoomButton]];
+    _centerTrafficLightButtons = YES;
+    
+    NSButton *closeButton = [self standardWindowButton:NSWindowCloseButton];
+    kWAYWindowDefaultTrafficLightButtonsLeftMargin = NSMinX(closeButton.frame);
+    kWAYWindowDefaultTrafficLightButtonsTopMargin = NSHeight(closeButton.superview.frame)-NSMaxY(closeButton.frame);
+    
+    self.styleMask |= NSFullSizeContentViewWindowMask;
+    _trafficLightButtonsLeftMargin = kWAYWindowDefaultTrafficLightButtonsLeftMargin;
+    _trafficLightButtonsTopMargin = kWAYWindowDefaultTrafficLightButtonsTopMargin;
+    
     self.hidesTitle = YES;
-	
-	[super setDelegate:self];
-	[self _setNeedsLayout];
+    self.showsTitle = NO;
+    self.verticallyCenterTitle = YES;
+    
+    [super setDelegate:self];
+    [self _setNeedsLayout];
 }
 
 - (void) _setNeedsLayout {
     [_standardButtons enumerateObjectsUsingBlock:^(NSButton *standardButton, NSUInteger idx, BOOL *stop) {
         NSRect frame = standardButton.frame;
-        CGFloat trafficLightSeparation = 6.0;
+        CGFloat trafficLightSeparation = 5.0;   // db: modified from the original
         if (_verticalTrafficLightButtons)
         {
             if (_centerTrafficLightButtons)
@@ -360,10 +375,66 @@ static float kWAYWindowDefaultTrafficLightButtonsTopMargin = 0;
             else
                 frame.origin.y = NSHeight(standardButton.superview.frame)-NSHeight(standardButton.frame)-_trafficLightButtonsTopMargin;
             
-            frame.origin.x = _trafficLightButtonsLeftMargin +idx*(NSWidth(frame) + trafficLightSeparation);
+            frame.origin.x = _trafficLightButtonsLeftMargin +idx*(NSWidth(frame) + 6.0);
             [standardButton setFrame:frame];
         }
     }];
+    
+    // Vertically center window title if necessary.
+    if (self.verticallyCenterTitle) {
+        [self layoutVerticallyCenterTitle];
+    }
+}
+
+// Position the title so it is centered vertically in the parent's view. This is done by traversing
+// the view hierarchy and vertically centering the title name, title edit state, document icon, and
+// autosave button according to class names. Naturally, centering won't work if class names change.
+- (void) layoutVerticallyCenterTitle
+{
+    NSRect drawingRect = self.titleBarView.frame;
+    if (self.showsTitle)
+    {
+        NSRect titleTextRect;
+        NSDictionary *titleTextStyles = nil;
+        [self getTitleFrame:&titleTextRect textAttributes:&titleTextStyles forWindow:self];
+        titleTextRect.origin.y = floor(NSMidY(drawingRect) - (NSHeight(titleTextRect) / 2.f) + 1);
+        for (NSView * view in self.titleBarView.subviews)
+        {
+            if ([[view className] isEqualToString:[NSTextField className]] || [[view className] isEqualToString:@"NSThemeDocumentButton"] || [[view className] isEqualToString:@"NSThemeAutosaveButton"])
+            {
+                [view setFrameOrigin:NSMakePoint(view.frame.origin.x, titleTextRect.origin.y)];
+            }
+        }
+    }
+}
+
+- (void) getNativeTitleTextInfo:(out HIThemeTextInfo *)titleTextInfo
+{
+    BOOL drawsAsMainWindow = (self.isMainWindow && [NSApplication sharedApplication].isActive);
+    titleTextInfo->version = 1;
+    titleTextInfo->state = drawsAsMainWindow ? kThemeStateActive : kThemeStateUnavailableInactive;
+    titleTextInfo->fontID = kThemeWindowTitleFont;
+    titleTextInfo->horizontalFlushness = kHIThemeTextHorizontalFlushCenter;
+    titleTextInfo->verticalFlushness = kHIThemeTextVerticalFlushCenter;
+    titleTextInfo->options = kHIThemeTextBoxOptionEngraved;
+    titleTextInfo->truncationPosition = kHIThemeTextTruncationDefault;
+    titleTextInfo->truncationMaxLines = 1;
+}
+
+- (void) getTitleFrame:(out NSRect *)frame textAttributes:(out NSDictionary **)attributes forWindow:(in WAYWindow *)window
+{
+    NSSize titleSize;
+    NSRect titleTextRect;
+    
+    HIThemeTextInfo titleTextInfo;
+    [self getNativeTitleTextInfo:&titleTextInfo];
+    HIThemeGetTextDimensions((__bridge CFTypeRef)(window.title), 0, &titleTextInfo, &titleSize.width, &titleSize.height, NULL);
+    
+    titleTextRect.size = titleSize;
+    
+    if (frame) {
+        *frame = titleTextRect;
+    }
 }
 
 #pragma mark - NSWindow Delegate
